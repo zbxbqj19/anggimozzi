@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keyword Insight - 빅데이터 분석 플랫폼</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">K</div>
+                <span class="text-xl font-extrabold tracking-tight text-gray-900">Keyword <span class="text-blue-600">Insight</span></span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if has_google %}bg-green-100 text-green-800{% else %}bg-amber-100 text-amber-800{% endif %}">
+                    Google API: {% if has_google %}활성{% else %}데모 모드{% endif %}
+                </span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if has_naver %}bg-green-100 text-green-800{% else %}bg-amber-100 text-amber-800{% endif %}">
+                    Naver API: {% if has_naver %}활성{% else %}크롤러 모드{% endif %}
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-6 py-8">
+        
+        <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-8">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">빅데이터 통합 키워드 검색 엔진</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">분석 키워드 입력</label>
+                    <input type="text" id="searchKeyword" placeholder="예: 무선 이어폰, 스마트워치, 캠핑 의자" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">수집 데이터 소스 다중선택</label>
+                    <div class="flex items-center space-x-4 py-2.5">
+                        <label class="inline-flex items-center cursor-pointer"><input type="checkbox" value="google" checked class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 mr-2">Google</label>
+                        <label class="inline-flex items-center cursor-pointer"><input type="checkbox" value="naver" checked class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 mr-2">Naver</label>
+                        <label class="inline-flex items-center cursor-pointer"><input type="checkbox" value="shopping" checked class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 mr-2">쇼핑몰 트렌드</label>
+                    </div>
+                </div>
+                <button onclick="executeAnalysis()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl transition duration-200 shadow-md shadow-blue-100">분석 시작</button>
+            </div>
+        </section>
+
+        <div id="loader" class="hidden flex flex-col items-center justify-center py-20 space-y-4">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p class="text-gray-500 font-medium">형태소 파싱 및 TF-IDF 가중치 연산 엔진 가동 중...</p>
+        </div>
+
+        <div id="dashboardView" class="hidden space-y-8">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <p class="text-sm font-medium text-gray-400">타겟 키워드 / 분석 일시</p>
+                    <h3 id="metaKeyword" class="text-2xl font-bold text-gray-900 mt-1">-</h3>
+                    <p id="metaTime" class="text-xs text-gray-500 mt-2">-</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <p class="text-sm font-medium text-gray-400">총 수집 문서 및 말뭉치 개수</p>
+                    <h3 id="metaDocCount" class="text-2xl font-bold text-gray-900 mt-1">0 건</h3>
+                    <p class="text-xs text-emerald-600 mt-2">✓ 정제 필터링 프로세싱 완료</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <p class="text-sm font-medium text-gray-400">포착된 고유 상품 식별자</p>
+                    <h3 id="metaProductCount" class="text-2xl font-bold text-gray-900 mt-1">0 개</h3>
+                    <p id="metaModelNames" class="text-xs text-gray-500 mt-2 truncate">-</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center">
+                    <h3 class="text-base font-bold text-gray-900 mb-4 self-start">핵심 키워드 워드클라우드 시각화</h3>
+                    <img id="imgWordcloud" class="w-full rounded-xl object-contain" src="" alt="Wordcloud">
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center">
+                    <h3 class="text-base font-bold text-gray-900 mb-4 self-start">TF-IDF 가중치 및 스코어 매핑 차트</h3>
+                    <img id="imgTfidfBar" class="w-full rounded-xl object-contain" src="" alt="TF-IDF Bar Chart">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center">
+                    <h3 class="text-base font-bold text-gray-900 mb-4 self-start">시장 가격 분포 분포도</h3>
+                    <img id="imgPriceDist" class="w-full rounded-xl object-contain" src="" alt="Price Distribution">
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center">
+                    <h3 class="text-base font-bold text-gray-900 mb-4 self-start">주요 경쟁 브랜드 경쟁 현황</h3>
+                    <img id="imgBrandChart" class="w-full rounded-xl object-contain" src="" alt="Brand Chart">
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-bold text-gray-900 mb-4">TF-IDF 키워드 랭킹 상위 스코어 보드</h3>
+                    <div class="overflow-y-auto max-h-[300px] border border-gray-100 rounded-xl">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold">
+                                <tr>
+                                    <th class="p-3">순위</th>
+                                    <th class="p-3">키워드</th>
+                                    <th class="p-3 text-right">TF-IDF 점수</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tfidfTableBody" class="divide-y divide-gray-100 text-gray-700">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 py-6 text-center text-xs text-gray-400 mt-12">
+        <p>© 2026 Keyword Insight System. Powered by Kiwi NLP & Scikit-Learn. All rights reserved.</p>
+    </footer>
+
+    <script>
+        async function executeAnalysis() {
+            const keyword = document.getElementById('searchKeyword').value.trim();
+            if(!keyword) {
+                alert('분석을 진행할 키워드를 입력해 주세요.');
+                return;
+            }
+
+            const sources = [];
+            document.querySelectorAll('input[type="checkbox"]:checked').forEach(el => {
+                sources.push(el.value);
+            });
+
+            const loader = document.getElementById('loader');
+            const dashboard = document.getElementById('dashboardView');
+
+            loader.classList.remove('hidden');
+            dashboard.classList.add('hidden');
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyword: keyword, sources: sources })
+                });
+
+                const data = await response.json();
+                if(data.error) {
+                    alert('에러 발생: ' + data.error);
+                    loader.classList.add('hidden');
+                    return;
+                }
+
+                // 메타 메트릭스 데이터 맵핑
+                document.getElementById('metaKeyword').innerText = `"${data.keyword}"`;
+                document.getElementById('metaTime').innerText = `분석 완료 기준시: ${data.timestamp}`;
+                document.getElementById('metaDocCount').innerText = `${data.total_documents} 건`;
+                document.getElementById('metaProductCount').innerText = `${data.product_analysis.products.length} 개 제품`;
+                document.getElementById('metaModelNames').innerText = `포착된 유행어/모델: ` + (data.product_names.join(', ') || '없음');
+
+                // 차트 그래픽스 맵핑
+                if(data.charts.wordcloud) document.getElementById('imgWordcloud').src = data.charts.wordcloud;
+                if(data.charts.tfidf_bar) document.getElementById('imgTfidfBar').src = data.charts.tfidf_bar;
+                if(data.charts.price_dist) document.getElementById('imgPriceDist').src = data.charts.price_dist;
+                if(data.charts.brand_chart) document.getElementById('imgBrandChart').src = data.charts.brand_chart;
+
+                // 스코어 보드 데이터 테이블 맵핑
+                const tbody = document.getElementById('tfidfTableBody');
+                tbody.innerHTML = '';
+                data.tfidf_keywords.forEach((item, index) => {
+                    const row = `
+                        <tr class="hover:bg-gray-50/70 transition">
+                            <td class="p-3 font-bold text-gray-400">${index + 1}</td>
+                            <td class="p-3 font-semibold text-gray-900">${item.word}</td>
+                            <td class="p-3 text-right text-blue-600 font-medium">${item.score}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+
+                loader.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+
+            } catch (error) {
+                alert('서버 통신 실패: ' + error);
+                loader.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
